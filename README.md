@@ -1,3 +1,3 @@
 # myproject
 
-Mainly code for functional class
+Code for functional class

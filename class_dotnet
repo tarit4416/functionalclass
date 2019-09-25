@@ -1,0 +1,197 @@
+//SendEmail
+public static bool SendEmail(string SendTo, string SendFrom, string SendSubject, string HTMLHeader,
+           string HTMLBody, string AttachFileList = "", string SendCC = "", string PathFile = "")
+        {
+            INIFile inif = new INIFile(HttpContext.Current.Server.MapPath("~/PDGTHWeb.INI"));
+            string cSendEmail = inif.Read("PRJSTATUS", "FSENDEMAIL", "N");
+            SendFrom = inif.Read("PRJSTATUS", "SENDFROM", "");
+
+            if (string.IsNullOrEmpty(SendTo) || cSendEmail == "N")
+            {
+                return true;
+            }
+            MailMessage myMail = new MailMessage();
+
+            string strMsg = "";
+            if (!string.IsNullOrEmpty(HTMLHeader))
+                strMsg = strMsg + "<h1>" + HTMLHeader + "</h1><br>";
+            strMsg = strMsg + "<div style='font-size:16px;'>" + HTMLBody + "</div>" + "<br /><br /><br />";
+            strMsg = strMsg + "<div align='left'><font size='2'>Web Application - Automatic E-Mail generated on " + DateTime.Now + "</font></div>";
+            string strSMTP, UserName, Password;
+            int ClientPort;
+            bool lEnableSsl;
+
+            strSMTP = inif.Read("PRJSTATUS", "SMTPSERVER");
+            ClientPort = System.Convert.ToInt32(inif.Read("PRJSTATUS", "SMTPPORT"));
+            lEnableSsl = (inif.Read("PRJSTATUS", "SMTPSSL", "N") == "Y");
+            UserName = inif.Read("PRJSTATUS", "SMTPUSERID", "");
+            Password = inif.Read("PRJSTATUS", "SMTPUSERPWD", "");
+            if (SendTo.IndexOf(";") != 0)
+            {
+                string[] SendToList = SendTo.Split(';');
+                int nI;
+                for (nI = 0; nI < SendToList.ToList().Count; nI++)
+                {
+                    if (!string.IsNullOrEmpty(SendToList[nI]))
+                        myMail.To.Add(SendToList[nI]);
+                }
+            }
+            else
+                myMail.To.Add(SendTo);
+            if (!string.IsNullOrEmpty(SendCC))
+            {
+                if (SendCC.IndexOf(";") != 0)
+                {
+                    string[] SendToList = SendCC.Split(';');
+                    int nI;
+                    for (nI = 0; nI < SendToList.ToList().Count; nI++)
+                    {
+                        if (!string.IsNullOrEmpty(SendToList[nI]))
+                            myMail.CC.Add(SendToList[nI]);
+                    }
+                }
+                else
+                    myMail.CC.Add(SendCC);
+            }
+
+            if (string.IsNullOrEmpty(SendFrom))
+            {
+                SendFrom = UserName;
+            }
+            myMail.From = new MailAddress(UserName, SendFrom, System.Text.Encoding.UTF8);
+            myMail.Subject = SendSubject;
+            myMail.SubjectEncoding = System.Text.Encoding.UTF8;
+            myMail.Body = strMsg;
+            myMail.BodyEncoding = System.Text.Encoding.UTF8;
+            myMail.IsBodyHtml = true;        // กำหนดรูปแบบ Body เป็นแบบ Html
+            myMail.Priority = System.Net.Mail.MailPriority.High;
+            // Attachments
+            if (!string.IsNullOrEmpty(AttachFileList))
+            {
+                string[] AttachList = AttachFileList.Split(',');
+                int nI;
+                for (nI = 0; nI < AttachList.ToList().Count; nI++)
+                {
+                    // Create  the file attachment for this e-mail message.
+                    string picFld = inif.Read("PRJSTATUS", "PICFLD");
+                    if (!string.IsNullOrEmpty(PathFile))
+                    {
+                        picFld = PathFile;
+                    }
+                    string file = picFld + @"\" + AttachList[nI];
+                    Attachment data = new Attachment(file, MediaTypeNames.Application.Octet);
+                    // Add time stamp information for the file.
+                    ContentDisposition disposition = data.ContentDisposition;
+                    disposition.CreationDate = System.IO.File.GetCreationTime(file);
+                    disposition.ModificationDate = System.IO.File.GetLastWriteTime(file);
+                    disposition.ReadDate = System.IO.File.GetLastAccessTime(file);
+                    // Add the file attachment to this e-mail message.
+                    myMail.Attachments.Add(data);
+                }
+            }
+
+            // Adding the Creddentials
+            System.Net.Mail.SmtpClient client = new System.Net.Mail.SmtpClient();
+            client.Credentials = new System.Net.NetworkCredential(UserName, Password);
+            client.Port = ClientPort;
+            client.Host = strSMTP;       // SenderSmtpAddress
+            if (lEnableSsl)
+            {
+                client.EnableSsl = true;
+            }
+            client.Send(myMail);
+
+            myMail = null;
+            return true;
+        }
+        
+        // IP
+        public static string GetUserIP()
+        {
+            string ipList = HttpContext.Current.Request.ServerVariables["HTTP_X_FORWARDED_FOR"];
+
+            if (!string.IsNullOrEmpty(ipList))
+            {
+                return ipList.Split(',')[0];
+            }
+
+            return HttpContext.Current.Request.ServerVariables["REMOTE_ADDR"];
+        }
+
+        public static string GetMachineIPAddress()
+        {
+            string cIPAddress = "";
+            IPHostEntry Host = default(IPHostEntry);
+            string Hostname = null;
+            Hostname = System.Environment.MachineName;
+            Host = Dns.GetHostEntry(Hostname);
+            foreach (IPAddress IP in Host.AddressList)
+            {
+                if (IP.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                {
+                    cIPAddress = Convert.ToString(IP);
+                }
+            }
+            return cIPAddress;
+        }
+        
+    public class AjaxResult
+    {
+        public bool Result { get; set; }
+        public string ErrorMsg { get; set; }
+    }
+
+    public class AjaxResultWithObject : AjaxResult
+    {
+        public ICollection<object> Objects { get; set; }
+    }
+        
+/* class File .ini */
+public class INIFile
+    {
+        private string filePath;
+
+        [DllImport("kernel32")]
+        private static extern long WritePrivateProfileString(string section,
+        string key,
+        string val,
+        string filePath);
+
+        [DllImport("kernel32")]
+        private static extern int GetPrivateProfileString(string section,
+        string key,
+        string def,
+        StringBuilder retVal,
+        int size,
+        string filePath);
+
+        public INIFile(string filePath)
+        {
+            this.filePath = filePath;
+        }
+
+        public void Write(string section, string key, string value)
+        {
+            WritePrivateProfileString(section, key, value.ToLower(), this.filePath);
+        }
+
+        public string Read(string section, string key, string sdefault = "")
+        {
+            StringBuilder SB = new StringBuilder(255);
+            int i = GetPrivateProfileString(section, key, "", SB, 255, this.filePath);
+            if (i != 0)
+            {
+                return SB.ToString();
+            }
+            else
+            {
+                return sdefault;
+            }
+        }
+
+        public string FilePath
+        {
+            get { return this.filePath; }
+            set { this.filePath = value; }
+        }
+    }

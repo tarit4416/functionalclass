@@ -1,0 +1,101 @@
+//formatPrice 2 Digit
+function formatPrice(num) {
+    var str = num.toString().replace("$", ""), parts = false, output = [], i = 1, formatted = null;
+    var sub = false;
+    if (str.indexOf("-") >= 0) {
+        sub = str.split("-");
+        str = sub[1];
+    }
+    if (str.indexOf(".") >= 0) {
+        parts = str.split(".");
+        str = parts[0];
+    }
+    str = str.split("").reverse();
+    for (var j = 0, len = str.length; j < len; j++) {
+        if (str[j] != ",") {
+            output.push(str[j]);
+            if (i % 3 == 0 && j < (len - 1)) {
+                output.push(",");
+            }
+            i++;
+        }
+    }
+    formatted = output.reverse().join("");
+    if (sub) {
+        formatted = "-" + formatted;
+    }
+    if (parts) {
+        formatted += "." + parts[1].substr(0, 2);
+    }
+    return formatted;
+};
+
+//Currency
+function _currency(value, tofixed) {
+    var num = Number(value.replace(/[^0-9.-]+/g, "")).toFixed(tofixed);
+    if (isNaN(num)) {
+        num = parseFloat(0).toFixed(tofixed);
+    }
+    var currency = num.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,");
+    return currency;
+}
+
+//getUrlParameter
+function getUrlParameter(sParam) {
+    var sPageURL = decodeURIComponent(window.location.search.substring(1)),
+        sURLVariables = sPageURL.split('&'),
+        sParameterName,
+        i;
+
+    for (i = 0; i < sURLVariables.length; i++) {
+        sParameterName = sURLVariables[i].split('=');
+
+        if (sParameterName[0] === sParam) {
+            return sParameterName[1] === undefined ? true : sParameterName[1];
+        }
+    }
+};
+
+//getShortMonthThai
+function getShortMonthTH(month) {
+    var MonthName = "";
+    var nMonth = parseInt(month) - 1;
+    var months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+               "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+
+    MonthName = months[nMonth];
+    return MonthName;
+}
+
+//Check is email
+function isEmail(email) {
+    var regex = /^([a-zA-Z0-9_.+-])+\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$/;
+    return regex.test(email);   //return true/false
+}
+
+//Get old path
+function getOldPath() {
+    var sPageURL = decodeURIComponent(window.location.search.substring(1));
+    sPageURL = sPageURL.substring('url='.length);
+
+    return sPageURL;
+}
+
+//is Password
+function isPassword(key) {
+    var text = "";
+    var pattern = /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%\^&*(){}[\]<>?/|\-]).{8}/;
+    var chk = pattern.test(key);
+    if (!chk) {
+        text = "กรุณระบุรหัสผ่านอย่างน้อย 8 ตัวอักษร และต้องประกอบด้วยอักษรพิมพ์ใหญ่ อักษรพิมพ์เล็ก ตัวเลข และอักขระพิเศษ"
+    }
+    return text;
+}
+
+//ScrollToTop
+function ScrollToTop() {
+    $('body,html').animate({
+        scrollTop: 0
+    }, 800);
+    return false;
+}
